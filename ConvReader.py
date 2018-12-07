@@ -57,7 +57,7 @@ def main():
 	parallelSPF = open("parallel_spf.txt","w")
 	lazySPF = open("lazy_spf.txt","w")
 	strictDMARC = open("strict_dmarc_spf.txt","w")
-	softDMARC = open("soft_dmarc_spf","w")
+	softDMARC = open("soft_dmarc_spf.txt","w")
 	#initialize files woth headers
 	print("Sender ID\t","Receiver ID\t\t\t","test #\t","Key\t\t","Mail Time\t",
 		"Validate Time\t","dmarc Time\t","L2 Time\tL3 Time\t","RCPT Time\t\tData Time",
