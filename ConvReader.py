@@ -1,16 +1,14 @@
 from ConvClass import Conv
 import re
 import sys
+import time
+import datetime
 from PcapReader import parse
 
 def main():
-	#test list with only one smtp line
-	#convList = {"keenness": Conv("     11 0.097460       128.187.82.253        23.103.156.74         SMTP     152    C: MAIL FROM:<spf-test@lmcc7ka.test1.keenness.spf-test.internet-measurement.cs.byu.edu>")}
 	print("parsing",sys.argv[1],"and",sys.argv[2])
 	convList = parse(sys.argv[1])
 	print("parsePCAP complete   ")
-	#convList = parseSMTP()
-	#print("parseSMTP complete   ")
 	parseQuery(convList,sys.argv[2])
 	print("parseQuery complete  ")
 	
@@ -235,7 +233,11 @@ def main():
 	print ("\t",(soft/length)*100,"%  (",soft,") had a DMARC query and DATA",
 		file=sum2File)
 	
-		
+'''
+<summary>Given a dictionary of Conv objects and a dns query filename, iterates through filename and checks each entry from test1 for a matching
+conversation. If it does, check if this message is one we are tracking (base,l2,l3,dmarc) and append relative messages to the coresponding
+Conv object</summary>
+'''		
 def parseQuery(convList,filename):
 	f = open(filename)
 	l = f.readlines()
@@ -243,68 +245,52 @@ def parseQuery(convList,filename):
 	for x in l:
 		print("\rparsing line",ln,end='\r')
 		ln +=1
-		m = re.search(RE_ULTIMATE,x)
+		m = None
+		y = minimize(x)
+		if y is not None:
+			m = re.search(RE_ULTIMATE,y)
 		if m is not None:
-			#convert to list of strings; not actually necessary
-			#counter = 0
-			#log_elements = []
-			#while counter < 13:
-			#	log_elements.append(m.group(counter))
-			#	counter += 1
-
 			if m[8] == "test1":
 				c = convList.get(m[9])
 				if c is not None:
+					print(m)
 					#if this is the l2 message
 					if m[6] == "l2" and c.l2Time == "unknown":
 						c.l2Time = m[1]
-						#c.printConv(None)
+					#if this is the l3 message
 					if m[6] =="l3" and c.l3Time =="unknown":
 						c.l3Time = m[1]
-						#c.printConv(None)
+					#if this is the dmarc message
 					if m[2] is not None:
 						c.dmarcTime = m[1]
-						#c.printConv(None)
+				
 					else:
 						#if no other message has yet been received 
 						if c.validateTime == "unknown":
 							c.validateTime = m[1]
-							#c.printConv(None)
-		
-def parseSMTP():
-	f = open("dataset.txt","r")
-	l = f.readlines()
-	cList = {}
-	ln = 0
-	for x in l:
-		print("\rparsing line",ln,end='\r')
-		ln += 1
-		#print(x)
-		if x.find('MAIL FROM') != -1:
-			#create new Conv object
-			tmp = Conv(x)
-			#tmp.printConv()
-			if tmp.test == "test1":
-				cList[tmp.key]= tmp
-		else:
-			if x.find('RCPT TO') != -1:
-				#update Conv object with rcptTime
-				tmp2 = x.split()
-				for i in cList:
-					if cList[i].isConv(tmp2[2],tmp2[3]):
-						cList[i].rcptTime = tmp2[1]
-						#cList[i].printConv()
-						break
-			else:
-				if x.find('DATA') !=-1:
-					tmp3 = x.split()
-					for j in cList:
-						if cList[j].isConv(tmp3[2],tmp3[3]):
-							cList[j].dataTime = tmp3[1]
-							break
-	return cList
-	
+'''
+<summary>Takes a dns query.log file line as input, and strips it to minimal format for parsing in parseQuery</summary>
+<returns>Returns a string with the new format, or None if the line could not be parsed.</returns>
+'''							
+def minimize (line):
+	line = line.rstrip()
+	m = QUERY_LOG_RE.search(line)
+	if m is None:
+		#print('Could not parse log line: %s' % line)
+		return None
+	log_ts = get_timestamp_from_log(m.group('timestamp'), m.group('microseconds'))
+	out = "{} {} {}".format(log_ts,m.group('qname').lower(),m.group('qtype'))
+	return out
 
+def get_timestamp_from_log(ts_str, microseconds):
+	ts = time.mktime(datetime.datetime.strptime(ts_str, "%Y-%m-%dT%H:%M:%S.%f").timetuple())
+	ts += float(microseconds)
+	return ts
+	
+QUERY_LOG_RE = re.compile(r'^(?P<timestamp>\d+-\d+-\d+T\d+:\d+:\d+(?P<microseconds>\.\d+)?)-\d+:\d+\s(.*\s)?' + \
+            r'client\s+(@0x[0-9a-f]+\s+)?(?P<client_ip>[a-fA-F0-9:\.]+)#(?P<client_port>\d+)\s(.*\s)?' + \
+            r'query:\s+(?P<qname>\S+)\s+IN\s+(?P<qtype>\S+)\s+(?P<flags>\S+)' + \
+r'\s+\((?P<server_ip>[a-fA-F0-9:\.]+)\)')
 
 #Grouping: 1 = recorded decimal time | 2 = _dmarc | 3 = _\w+ | 4 = _\w+ | 5 = the group that six is in | 6 = l#. | 7 = endcoded time stamp
 #8 = test## | 9 = generated name | 10 = #00ms | 11 =  | 12 = Record look-up type			

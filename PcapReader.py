@@ -3,8 +3,8 @@ from ConvClass import Conv
 logging.getLogger("kamene.runtime").setLevel(logging.ERROR)
 from kamene.all import *
 '''
-in: string filename
-out: 
+<summary>Given a pcap filename, sorts out smtp filetypes, and parses them into Conv objects</summary>
+<returns>a list of Conv objects, representing the conversatiions in the pcap file</returns> 
 '''
 def parse(filename):
 	cList = {}
@@ -19,9 +19,6 @@ def parse(filename):
 				#if the pkt is part of a smtp conversation
 				x = (str(pkt.time)+" "+pkt.sprintf("%IP.src%")+" "+
 					pkt.sprintf("%IP.dst%")+" "+pkt.sprintf("%TCP.load%"))
-				#print(x)
-				'''print(pkt.time,pkt.sprintf("%IP.src%"),
-					pkt.sprintf("%IP.dst%"),pkt.sprintf("%TCP.load%"),file=dataset)'''
 				
 				if x.find('MAIL FROM') != -1:
 					#create new Conv object
