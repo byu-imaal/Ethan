@@ -5,7 +5,7 @@ import time
 import datetime
 from PcapReader import parse
 
-def main():
+def main():	
 	print("parsing",sys.argv[1],"and",sys.argv[2])
 	convList = parse(sys.argv[1])
 	print("parsePCAP complete   ")
@@ -253,7 +253,6 @@ def parseQuery(convList,filename):
 			if m[8] == "test1":
 				c = convList.get(m[9])
 				if c is not None:
-					print(m)
 					#if this is the l2 message
 					if m[6] == "l2" and c.l2Time == "unknown":
 						c.l2Time = m[1]
